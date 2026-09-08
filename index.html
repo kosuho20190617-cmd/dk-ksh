@@ -704,10 +704,14 @@
       const isAppAdmin = session && session.role === 'app_admin';
       $('appAdminSmsFields').style.display = isAppAdmin ? 'block' : 'none';
       
+      // 1. 시간 및 분 select 옵션을 먼저 채워넣습니다.
       const hourSel = $('cfgSendHour');
       if (hourSel.children.length === 0) {
+        hourSel.innerHTML = '';
         for(let i=0; i<24; i++){ hourSel.innerHTML += `<option value="${i}">${i}시</option>`; }
-        const minSel = $('cfgSendMinute');
+      }
+      const minSel = $('cfgSendMinute');
+      if (minSel.children.length === 0) {
         minSel.innerHTML = '';
         for(let i=0; i<60; i++){ minSel.innerHTML += `<option value="${i}">${i}분</option>`; }
       }
@@ -725,8 +729,14 @@
             $('cfgSenderNumber').value = s.senderNumber || '';
           }
           $('cfgAutoSend').value = String(!!s.autoSend);
-          if(s.sendHour !== undefined) $('cfgSendHour').value = s.sendHour;
-          if(s.sendMinute !== undefined) $('cfgSendMinute').value = s.sendMinute;
+          
+          // 2. 서버에서 불러온 시간/분 값을 정확히 할당합니다.
+          if(s.sendHour !== undefined && s.sendHour !== null) {
+            $('cfgSendHour').value = String(s.sendHour);
+          }
+          if(s.sendMinute !== undefined && s.sendMinute !== null) {
+            $('cfgSendMinute').value = String(s.sendMinute);
+          }
           
           // 저장된 요일 데이터 반영
           if (Array.isArray(s.sendDays)) {
@@ -737,7 +747,7 @@
             });
           }
 
-          // 공휴일 발송 설정 반영 (기본값 true)
+          // 공휴일 발송 설정 반영
           $('cfgSendOnHoliday').value = (s.sendOnHoliday !== undefined) ? String(s.sendOnHoliday) : 'true';
 
           recipientPhonesList = s.recipientPhones || [];
