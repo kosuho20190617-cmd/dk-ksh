@@ -289,7 +289,7 @@
           <div><label>발송 분</label><select id="cfgSendMinute"></select></div>
         </div>
         
-        <!-- 💡 요일 선택 설정 영역 추가 -->
+        <!-- 요일 선택 설정 영역 -->
         <label style="margin-top:10px;">발송 요일 선택</label>
         <div style="display:flex; justify-content:space-between; gap:2px; background:var(--input-bg); border:1px solid var(--border); padding:8px; border-radius:8px; margin-bottom:8px; font-size:12px;">
           <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="1"> 월</label>
@@ -301,7 +301,14 @@
           <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="0"> 일</label>
         </div>
 
-        <label>수신자 휴대폰 번호 추가</label>
+        <!-- 공휴일 발송 여부 설정 영역 추가 -->
+        <label style="margin-top:10px;">공휴일 문자 발송</label>
+        <select id="cfgSendOnHoliday">
+          <option value="true">발송 함</option>
+          <option value="false">발송 안 함 (제외)</option>
+        </select>
+
+        <label style="margin-top:10px;">수신자 휴대폰 번호 추가</label>
         <div class="phone-add-row">
           <input type="text" id="cfgPhoneInput" placeholder="010XXXXXXXX">
           <button id="addPhoneBtn">추가</button>
@@ -331,7 +338,7 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
     const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
 
-    const CLIENT_VERSION = '2.1.2';
+    const CLIENT_VERSION = '2.1.3';
 
     const categories = { main:'Main', circulation:'서큘레이션', wafer:'웨퍼', combo:'콤보', compressor:'콤프레셔' };
     let session = null, currentTab = 'main';
@@ -721,7 +728,7 @@
           if(s.sendHour !== undefined) $('cfgSendHour').value = s.sendHour;
           if(s.sendMinute !== undefined) $('cfgSendMinute').value = s.sendMinute;
           
-          // 저장된 요일 데이터 반영 (배열 또는 단일값 대응)
+          // 저장된 요일 데이터 반영
           if (Array.isArray(s.sendDays)) {
             document.querySelectorAll('.day-check').forEach(chk => {
               if (s.sendDays.includes(Number(chk.value)) || s.sendDays.includes(String(chk.value))) {
@@ -729,6 +736,9 @@
               }
             });
           }
+
+          // 공휴일 발송 설정 반영 (기본값 true)
+          $('cfgSendOnHoliday').value = (s.sendOnHoliday !== undefined) ? String(s.sendOnHoliday) : 'true';
 
           recipientPhonesList = s.recipientPhones || [];
           renderPhoneList();
@@ -756,7 +766,7 @@
       $('smsMessage').textContent = '저장 중...';
       const isAppAdmin = session && session.role === 'app_admin';
       
-      // 체크된 요일 값 수집 (숫자 배열 형태로 변환)
+      // 체크된 요일 값 수집
       const selectedDays = [];
       document.querySelectorAll('.day-check:checked').forEach(chk => {
         selectedDays.push(Number(chk.value));
@@ -773,7 +783,8 @@
           autoSend: ($('cfgAutoSend').value === 'true'),
           sendHour: Number($('cfgSendHour').value),
           sendMinute: Number($('cfgSendMinute').value),
-          sendDays: selectedDays // 💡 선택한 요일 배열 전송
+          sendDays: selectedDays,
+          sendOnHoliday: ($('cfgSendOnHoliday').value === 'true') // 공휴일 발송 여부 전송
         });
         if (r.result !== 'success') throw new Error(r.message);
         $('smsMessage').style.color = '#34d399';
