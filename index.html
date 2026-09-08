@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>설비 정비 관리 시스템</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #059669;
+      --warn: #d97706;
+      --danger: #ef4444;
+      --bg: #121418;          
+      --card-bg: #1a1d24;     
+      --text: #f3f4f6;        
+      --text-sub: #9ca3af;    
+      --border: #2d333b;      
+      --input-bg: #222730;    
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:12px;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;font-size:14px;}
+    .wrap{max-width:1100px;margin:auto}
+    .panel,.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+    .panel{max-width:400px;margin:40px auto;padding:24px}
+    .card{padding:16px;margin:12px 0}
+    h1{font-size:20px;text-align:center;color:#60a5fa;margin:12px 0;}
+    h3{margin:0 0 10px 0;font-size:16px;color:var(--text);}
+    label{display:block;margin:10px 0 4px;font-weight:600;font-size:13px;color:#d1d5db}
+    input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--input-bg);color:var(--text);appearance:none;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,0.2);}
+    textarea{resize:vertical;min-height:60px;}
+    button{border:0;border-radius:8px;padding:10px 14px;color:#fff;background:var(--primary);font-weight:600;cursor:pointer;font-size:13px;transition:opacity 0.2s;}
+    button:active{opacity:0.8}
+    .wide{width:100%;margin-top:10px}
+    .secondary{background:#374151;color:#e5e7eb}
+    .danger{background:var(--danger)}
+    .warn{background:var(--warn)}
+    .admin{background:var(--success)}
+    .hidden{display:none!important}
+    .message { margin-top: 8px; font-size: 12px; text-align: center; min-height: 16px; }
+    
+    input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--input-bg);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin: 0;
+      position: relative;
+    }
+    input[type="checkbox"]:checked {
+      background: var(--success);
+      border-color: var(--success);
+    }
+    input[type="checkbox"]:checked::after {
+      content: '✔';
+      font-size: 12px;
+      color: #fff;
+      position: absolute;
+      font-weight: bold;
+    }
+
+    .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+    .top-actions{display:flex;gap:6px;flex-wrap:wrap;}
+    .top-actions button{padding:8px 10px;font-size:12px;}
+
+    .tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0;padding-bottom:4px;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tabs button{background:var(--input-bg);color:#d1d5db;border:1px solid var(--border);white-space:nowrap;padding:8px 14px;}
+    .tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+    .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+    .summary-card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+    .summary-card .num{font-size:20px;font-weight:800}
+    .summary-card .lbl{font-size:11px;color:var(--text-sub)}
+
+    .eq-card-list{display:flex;flex-direction:column;gap:10px;}
+    .eq-item-card{background:#1e232d;border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;}
+    .eq-item-card.status-danger-bg{border-left:4px solid var(--danger);}
+    .eq-item-card.status-warn-bg{border-left:4px solid var(--warn);}
+    .eq-item-card.status-ok-bg{border-left:4px solid var(--success);}
+    
+    .eq-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+    .eq-title{font-weight:700;font-size:15px;color:#93c5fd;}
+    .eq-badge{font-size:11px;padding:2px 6px;border-radius:4px;font-weight:700;}
+    .eq-body-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-size:13px;margin-bottom:8px;color:var(--text-sub);}
+    .eq-body-grid div span{color:#9ca3af;font-size:12px;}
+    
+    .status-ok{color:#34d399;font-weight:700}
+    .status-warn{color:#fbbf24;font-weight:700}
+    .status-danger{color:#f87171;font-weight:700}
+    
+    .row-btns{display:flex;gap:6px;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+    .row-btns button{padding:6px 10px;font-size:12px;}
+
+    .desktop-table{display:none;}
+    @media(min-width:1024px){
+      .eq-card-list{display:none;}
+      .desktop-table{display:block;width:100%;overflow-x:auto;}
+      table{width:100%;border-collapse:collapse;font-size:13px}
+      th,td{border:1px solid var(--border);padding:8px;text-align:center}
+      th{background:#222730;color:var(--text);}
+    }
+
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:200;}
+    .modal .card{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;margin:0;}
+    .modal-narrow .card{max-width:380px}
+
+    .history-item{background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}
+    .history-item .h-top{display:flex;justify-content:space-between;font-weight:700;margin-bottom:4px;color:#e5e7eb;}
+    .history-empty{text-align:center;color:var(--text-sub);padding:20px}
+    
+    .phone-item{display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:8px 10px;border-radius:6px;border:1px solid var(--border);margin-bottom:6px;font-size:13px}
+    .phone-add-row{display:flex;gap:6px}
+    .phone-add-row input{flex:1}
+    
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#374151;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;border:1px solid var(--border);}
+    .toast.show{opacity:1}
+    .select-bar{display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:8px 12px;border-radius:8px;margin-bottom:10px;border:1px solid var(--border);}
+  </style>
+</head>
+<body>
+  <section id="loginView" class="panel">
+    <h1>설비 정비 관리 시스템</h1>
+    <label for="loginId">아이디</label><input id="loginId" autocomplete="username">
+    <label for="loginPassword">비밀번호</label><input id="loginPassword" type="password" autocomplete="current-password">
+    
+    <div style="display:flex; align-items:center; margin:12px 0; gap:8px;">
+      <input type="checkbox" id="autoLoginCheck">
+      <label for="autoLoginCheck" style="margin:0; font-weight:normal; cursor:pointer; color:var(--text-sub);">자동로그인</label>
+    </div>
+
+    <button class="wide" id="loginBtn">로그인</button>
+    <button class="wide secondary" id="goSignupBtn">회원가입</button>
+    <div id="loginMessage" class="message"></div>
+  </section>
+
+  <section id="signupView" class="panel hidden">
+    <h1>회원가입</h1>
+    <label for="signupId">아이디(ID)</label><input id="signupId" autocomplete="username">
+    <label for="signupPassword">비밀번호</label><input id="signupPassword" type="password" autocomplete="new-password">
+    <button class="wide" id="signupBtn">가입 신청</button>
+    <button class="wide secondary" id="goLoginBtn">로그인으로 돌아가기</button>
+    <div id="signupMessage" class="message"></div>
+  </section>
+
+  <main id="appView" class="wrap hidden">
+    <div class="top">
+      <div><b id="welcomeUser" style="color:#60a5fa;"></b>님 환영합니다. (<span id="roleBadge" style="color:#34d399;"></span>)</div>
+      <div class="top-actions">
+        <button id="refreshBtn" class="secondary">새로고침</button>
+        <button id="allHistoryBtn" class="secondary">이력</button>
+        <button id="configSmsBtn" class="secondary">문자알림</button>
+        <button id="adminBtn" class="admin hidden">회원관리</button>
+        <button id="logoutBtn" class="danger">로그아웃</button>
+      </div>
+    </div>
+    <h1>설비 정비 관리 시스템</h1>
+
+    <div class="summary-grid">
+      <div class="summary-card"><div class="num" style="color:#34d399;" id="cntOk">0</div><div class="lbl">정상</div></div>
+      <div class="summary-card"><div class="num" style="color:#fbbf24;" id="cntWarn">0</div><div class="lbl">임박</div></div>
+      <div class="summary-card"><div class="num" style="color:#f87171;" id="cntDanger">0</div><div class="lbl">지연</div></div>
+    </div>
+
+    <nav id="tabs" class="tabs"></nav>
+
+    <section class="card">
+      <div class="top" style="margin-bottom:10px;">
+        <h3 id="listTitle" style="margin:0;"></h3>
+        <button id="openAddBtn" class="wide hidden" style="width:auto; white-space:nowrap; margin-top:0;">+ 설비 추가</button>
+      </div>
+      
+      <div class="select-bar">
+        <div>
+          <input type="checkbox" id="selectAllCheck" style="vertical-align: middle; margin-right: 6px;">
+          <label for="selectAllCheck" style="display:inline; font-weight:normal; cursor:pointer;">전체 선택</label>
+          <span id="selectedCountText" style="font-size:12px; color:var(--text-sub); margin-left:8px;">선택 0개</span>
+        </div>
+        <button id="batchCompleteBtn" class="warn" style="padding:6px 12px; font-size:12px;">일괄 완료</button>
+      </div>
+
+      <div id="equipmentCardBody" class="eq-card-list"></div>
+
+      <div class="desktop-table">
+        <table>
+          <thead><tr>
+            <th>선택</th><th>설비명</th><th>정비종류</th><th>마지막 점검일</th><th>점검 주기</th>
+            <th>다음 예정일</th><th>남은일수</th><th>상태</th><th>점검자</th><th>메모</th><th>관리</th>
+          </tr></thead>
+          <tbody id="equipmentBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- 관리자 / 모달 창들 -->
+  <div id="adminModal" class="modal hidden">
+    <section class="card">
+      <div class="top"><h3>회원 관리</h3><button id="closeAdminBtn" class="secondary">닫기</button></div>
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table>
+          <thead><tr><th>아이디</th><th>권한</th><th>상태</th><th>관리</th></tr></thead>
+          <tbody id="userBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="addModal" class="modal modal-narrow hidden">
+    <section class="card">
+      <div class="top"><h3 id="addModalTitle">설비 추가</h3><button class="secondary" id="closeAddBtn">닫기</button></div>
+      <label for="eqName">설비명</label><input id="eqName">
+      <label for="eqType">정비종류</label><input id="eqType">
+      <label for="eqLastDate">마지막 점검일</label><input id="eqLastDate" type="date">
+      <label for="eqCycle">점검 주기(일)</label><input id="eqCycle" type="number" min="1">
+      <label for="eqMemo">메모</label><textarea id="eqMemo" placeholder="설비 관련 메모를 입력하세요"></textarea>
+      <button class="wide" id="addBtn">설비 등록하기</button>
+      <div id="appMessage" class="message"></div>
+    </section>
+  </div>
+
+  <div id="completeModal" class="modal modal-narrow hidden">
+    <section class="card">
+      <div class="top"><h3 id="completeTitle">점검 완료 처리</h3><button class="secondary" id="closeCompleteBtn">닫기</button></div>
+      <label for="completeDate">점검 완료일</label><input id="completeDate" type="date">
+      <label for="completeInspector">점검자</label><input id="completeInspector" readonly style="background-color: #15181e; color: #9ca3af; cursor: not-allowed;">
+      <label for="completeMemo">메모</label><textarea id="completeMemo" placeholder="점검 완료 관련 메모를 입력하세요"></textarea>
+      <button class="wide" id="completeSaveBtn">저장하기</button>
+      <div id="completeMessage" class="message"></div>
+    </section>
+  </div>
+
+  <div id="batchModal" class="modal modal-narrow hidden">
+    <section class="card">
+      <div class="top"><h3 id="batchTitle">일괄 점검 완료 처리</h3><button class="secondary" id="closeBatchBtn">닫기</button></div>
+      <div id="batchTargetList" style="max-height:120px; overflow-y:auto; font-size:12px; color:var(--text-sub); background:var(--input-bg); border:1px solid var(--border); border-radius:6px; padding:8px; margin-bottom:10px;"></div>
+      <label for="batchDate">점검 완료일</label><input id="batchDate" type="date">
+      <label for="batchInspector">점검자</label><input id="batchInspector" readonly style="background-color: #15181e; color: #9ca3af; cursor: not-allowed;">
+      <label for="batchMemo">메모</label><textarea id="batchMemo" placeholder="일괄 완료 관련 메모를 입력하세요"></textarea>
+      <button class="wide" id="batchSaveBtn">일괄 저장</button>
+      <div id="batchMessage" class="message"></div>
+    </section>
+  </div>
+
+  <div id="editModal" class="modal modal-narrow hidden">
+    <section class="card">
+      <div class="top"><h3>설비 정보 수정</h3><button class="secondary" id="closeEditBtn">닫기</button></div>
+      <label for="editName">설비명</label><input id="editName">
+      <label for="editType">정비종류</label><input id="editType">
+      <label for="editCycle">점검 주기(일)</label><input id="editCycle" type="number" min="1">
+      <button class="wide" id="editSaveBtn">수정 완료</button>
+      <div id="editMessage" class="message"></div>
+    </section>
+  </div>
+
+  <div id="historyModal" class="modal hidden">
+    <section class="card">
+      <div class="top"><h3 id="historyTitle">정비 이력</h3><button class="secondary" id="closeHistoryBtn">닫기</button></div>
+      <div id="historyList"></div>
+    </section>
+  </div>
+
+  <!-- 솔라피(SMS) 설정 모달 -->
+  <div id="smsModal" class="modal modal-narrow hidden">
+    <section class="card">
+      <div class="top"><h3>SMS 발송 설정</h3><button class="secondary" id="closeSmsBtn">닫기</button></div>
+      
+      <div id="appAdminSmsFields">
+        <label>API Key</label><input id="cfgApiKey" placeholder="API Key 입력">
+        <label>API Secret</label><input id="cfgApiSecret" type="password" placeholder="API Secret 입력">
+        <label>발신번호 (솔라피에 등록된 번호)</label><input id="cfgSenderNumber" placeholder="01012345678">
+      </div>
+
+      <div id="managerSmsFields">
+        <label style="margin-top:12px;">자동 발송 여부</label>
+        <select id="cfgAutoSend"><option value="true">사용 함</option><option value="false">사용 안 함</option></select>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px; margin-top:8px;">
+          <div><label>발송 시</label><select id="cfgSendHour"></select></div>
+          <div><label>발송 분</label><select id="cfgSendMinute"></select></div>
+        </div>
+        
+        <label>수신자 휴대폰 번호 추가</label>
+        <div class="phone-add-row">
+          <input type="text" id="cfgPhoneInput" placeholder="010XXXXXXXX">
+          <button id="addPhoneBtn">추가</button>
+        </div>
+        <label>등록된 수신자 (<span id="phoneCount">0</span>명)</label>
+        <div id="phoneListContainer" style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;margin-bottom:8px;background:var(--input-bg);"></div>
+      </div>
+      
+      <button class="wide" id="smsSaveBtn">설정 저장</button>
+      <button class="wide secondary" id="sendSmsNowBtn" style="margin-top:6px;">지금 문자 발송</button>
+
+      <div id="customConfirmBox" style="display:none; border:1px solid var(--border); background:var(--input-bg); padding:12px; margin-top:10px; border-radius:8px; text-align:center;">
+        <p style="margin:0 0 10px; font-size:13px; color:#f3f4f6;">지금 바로 요약 문자를 발송하시겠습니까?</p>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <button type="button" id="confirmYesBtn" class="warn" style="padding:6px 14px; font-size:12px;">발송</button>
+          <button type="button" id="confirmNoBtn" class="secondary" style="padding:6px 14px; font-size:12px;">취소</button>
+        </div>
+      </div>
+
+      <div id="smsMessage" class="message" style="font-weight: bold; color: #60a5fa;"></div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
+    const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
+
+    // 💡 클라이언트 버전 정의
+    const CLIENT_VERSION = '2.1.1';
+
+    const categories = { main:'Main', circulation:'서큘레이션', wafer:'웨퍼', combo:'콤보', compressor:'콤프레셔' };
+    let session = null, currentTab = 'main';
+    let equipment = { main:[], circulation:[], wafer:[], combo:[], compressor:[] };
+    let recipientPhonesList = [];
+    let completeTargetName = '';
+    let editTargetName = '';
+    let selectedNames = new Set();
+    const $ = id => document.getElementById(id);
+
+    function showToast(msg){
+      const t = $('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 2200);
+    }
+
+    async function post(data) {
+      const response = await fetch(API_BASE_URL, { method:'POST', body: JSON.stringify(data) });
+      if (!response.ok) throw new Error('서버 응답 오류 (' + response.status + ')');
+      return response.json();
+    }
+    
+    async function get(params) {
+      const q = new URLSearchParams({ ...params, user: session ? session.username : '', pass: session ? session.password : '' });
+      const response = await fetch(API_BASE_URL + '?' + q.toString(), { cache: 'no-store' });
+      if (!response.ok) throw new Error('서버 응답 오류 (' + response.status + ')');
+      return response.json();
+    }
+
+    // 💡 안전한 버전 체크 함수 적용 완료
+    function checkAppVersion() {
+      fetch(API_BASE_URL + '?action=getVersion', { cache: 'no-store' })
+        .then(response => response.json())
+        .then(data => {
+          var serverVersion = data.version; // 서버 버전
+          
+          // 만약 서버 버전 값을 못 읽어왔거나 양쪽 버전이 같으면 아무것도 안 함
+          if (!serverVersion || serverVersion === CLIENT_VERSION) {
+            console.log("버전이 일치합니다. 정상 작동");
+            return;
+          }
+          
+          // 버전이 다를 때만 업데이트 창 띄우기
+          alert("새로운 업데이트가 있습니다! 최신 버전으로 갱신합니다.");
+          location.reload(); // 새로고침
+        })
+        .catch(err => {
+          console.log("버전 체크 통신 오류 무시");
+        });
+    }
+
+    function errorMessage(err) { return err && err.message ? err.message : '서버 연결에 실패했습니다.'; }
+    function show(view) { ['loginView','signupView','appView'].forEach(id => $(id).classList.toggle('hidden', id !== view)); }
+    function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+    function getRoleDisplayName(role) {
+      if (role === 'app_admin') return '어플관리자';
+      if (role === 'eq_admin') return '설비관리자';
+      return '사용자';
+    }
+
+    async function applySessionAndLoad(username, password, role, remember) {
+      session = { username, password, role: role || 'user' };
+      
+      if (remember) {
+        localStorage.setItem('eq_session', JSON.stringify(session));
+      } else {
+        localStorage.removeItem('eq_session');
+      }
+
+      $('welcomeUser').textContent = username;
+      $('roleBadge').textContent = getRoleDisplayName(session.role);
+      
+      const isAppAdmin = (session.role === 'app_admin');
+      const isEqManager = (session.role === 'app_admin' || session.role === 'eq_admin');
+      const isUser = (session.role === 'user');
+
+      $('adminBtn').classList.toggle('hidden', !isAppAdmin);
+      $('openAddBtn').classList.toggle('hidden', !isEqManager);
+      $('configSmsBtn').classList.toggle('hidden', isUser);
+
+      show('appView');
+      await loadEquipment();
+    }
+
+    async function login() {
+      $('loginMessage').textContent = '확인 중...';
+      const username = $('loginId').value.trim(), password = $('loginPassword').value;
+      const remember = $('autoLoginCheck').checked;
+      try {
+        const r = await post({ action:'login', username, password });
+        if (r.result !== 'success') throw new Error(r.message);
+        await applySessionAndLoad(username, password, r.role, remember);
+        $('loginMessage').textContent = '';
+      } catch (err) { $('loginMessage').textContent = errorMessage(err); }
+    }
+
+    async function signup() {
+      $('signupMessage').textContent = '처리 중...';
+      try {
+        const r = await post({ action:'signup', username:$('signupId').value.trim(), password:$('signupPassword').value });
+        if (r.result !== 'success') throw new Error(r.message);
+        alert('가입 신청이 완료되었습니다. 관리자 승인 후 로그인하세요.');
+        show('loginView');
+      } catch (err) { $('signupMessage').textContent = errorMessage(err); }
+    }
+
+    async function loadEquipment() {
+      try {
+        const r = await get({ action:'getEquipment' });
+        if (r.result !== 'success') throw new Error(r.message);
+        equipment = r.equipment;
+        renderEquipment();
+      } catch (err) { 
+        if (err.message.includes('인증 실패')) {
+          logout();
+          showToast('세션이 만료되었습니다. 다시 로그인해주세요.');
+        } else {
+          $('appMessage').textContent = errorMessage(err); 
+        }
+      }
+    }
+
+    function statusClass(status) {
+      if (status === '지연') return 'status-danger';
+      if (status === '임박') return 'status-warn';
+      return 'status-ok';
+    }
+
+    function renderEquipment() {
+      $('addModalTitle').textContent = categories[currentTab] + ' - 설비 등록';
+      $('listTitle').textContent = categories[currentTab] + ' 목록';
+      const list = equipment[currentTab] || [];
+      let ok=0, warn=0, danger=0;
+      Object.values(equipment).forEach(arr => (arr||[]).forEach(x => {
+        if (x['상태'] === '지연') danger++;
+        else if (x['상태'] === '임박') warn++;
+        else if (x['상태'] === '정상') ok++;
+      }));
+      $('cntOk').textContent = ok;
+      $('cntWarn').textContent = warn;
+      $('cntDanger').textContent = danger;
+      selectedNames.clear();
+      updateSelectedCount();
+
+      const isEqManager = (session.role === 'app_admin' || session.role === 'eq_admin');
+
+      const cardContainer = $('equipmentCardBody');
+      cardContainer.innerHTML = list.length ? list.map(x => {
+        let bgClass = 'status-ok-bg';
+        if (x['상태'] === '지연') bgClass = 'status-danger-bg';
+        else if (x['상태'] === '임박') bgClass = 'status-warn-bg';
+        return `
+          <div class="eq-item-card ${bgClass}">
+            <div class="eq-card-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" class="row-check" data-name="${escapeHtml(x['설비명'])}">
+                <span class="eq-title">${escapeHtml(x['설비명'])}</span>
+              </div>
+              <span class="${statusClass(x['상태'])} eq-badge">${escapeHtml(x['상태'])} (${escapeHtml(x['남은 일수'])}일)</span>
+            </div>
+            <div class="eq-body-grid">
+              <div><span>정비종류:</span> ${escapeHtml(x['정비종류'])}</div>
+              <div><span>점검주기:</span> ${escapeHtml(x['점검 주기(일)'])}일</div>
+              <div><span>마지막일:</span> ${escapeHtml(x['마지막 점검일'])}</div>
+              <div><span>예정일:</span> ${escapeHtml(x['다음 정비 예정일'])}</div>
+            </div>
+            <div style="font-size:12px; color:var(--text-sub); margin-bottom:4px;">
+              <span>점검자:</span> ${escapeHtml(x['점검자'] || '-')}
+            </div>
+            <div style="font-size:12px; color:var(--text-sub); margin-bottom:6px;">
+              <span>메모:</span> ${escapeHtml(x['점검자 메모'] || '-')}
+            </div>
+            <div class="row-btns">
+              <button class="warn" onclick="openCompleteModal('${escapeHtml(x['설비명'])}')">완료</button>
+              ${isEqManager ? `<button class="secondary" onclick="openEditModal('${escapeHtml(x['설비명'])}', '${escapeHtml(x['정비종류'])}', ${escapeHtml(x['점검 주기(일)'])})">수정</button>` : ''}
+              ${isEqManager ? `<button class="danger" onclick="deleteEq('${escapeHtml(x['설비명'])}')">삭제</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('') : '<div class="history-empty">등록된 설비가 없습니다.</div>';
+
+      const tableBody = $('equipmentBody');
+      tableBody.innerHTML = list.length ? list.map(x => `
+        <tr>
+          <td><input type="checkbox" class="row-check" data-name="${escapeHtml(x['설비명'])}"></td>
+          <td style="font-weight:700; color:#93c5fd;">${escapeHtml(x['설비명'])}</td>
+          <td>${escapeHtml(x['정비종류'])}</td>
+          <td>${escapeHtml(x['마지막 점검일'])}</td>
+          <td>${escapeHtml(x['점검 주기(일)'])}일</td>
+          <td>${escapeHtml(x['다음 정비 예정일'])}</td>
+          <td class="${statusClass(x['상태'])}">${escapeHtml(x['남은 일수'])}일</td>
+          <td class="${statusClass(x['상태'])}">${escapeHtml(x['상태'])}</td>
+          <td>${escapeHtml(x['점검자'] || '-')}</td>
+          <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(x['점검자 메모'] || '-')}</td>
+          <td>
+            <div style="display:flex; gap:4px; justify-content:center;">
+              <button class="warn" style="padding:4px 8px; font-size:11px;" onclick="openCompleteModal('${escapeHtml(x['설비명'])}')">완료</button>
+              ${isEqManager ? `<button class="secondary" style="padding:4px 8px; font-size:11px;" onclick="openEditModal('${escapeHtml(x['설비명'])}', '${escapeHtml(x['정비종류'])}', ${escapeHtml(x['점검 주기(일)'])})">수정</button>` : ''}
+              ${isEqManager ? `<button class="danger" style="padding:4px 8px; font-size:11px;" onclick="deleteEq('${escapeHtml(x['설비명'])}')">삭제</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('') : '<tr><td colspan="11" class="history-empty">등록된 설비가 없습니다.</td></tr>';
+
+      document.querySelectorAll('.row-check').forEach(chk => {
+        chk.checked = selectedNames.has(chk.dataset.name);
+        chk.onchange = e => {
+          if (e.target.checked) selectedNames.add(e.target.dataset.name);
+          else selectedNames.delete(e.target.dataset.name);
+          updateSelectedCount();
+        };
+      });
+      $('selectAllCheck').checked = list.length > 0 && selectedNames.size === list.length;
+    }
+
+    function updateSelectedCount() {
+      $('selectedCountText').textContent = '선택 ' + selectedNames.size + '개';
+    }
+
+    function renderTabs() {
+      const nav = $('tabs');
+      nav.innerHTML = Object.keys(categories).map(k => `
+        <button class="${k === currentTab ? 'active' : ''}" onclick="switchTab('${k}')">${escapeHtml(categories[k])}</button>
+      `).join('');
+    }
+
+    function switchTab(k) {
+      currentTab = k;
+      renderTabs();
+      renderEquipment();
+    }
+
+    async function deleteEq(name) {
+      if (!confirm('정말 [' + name + '] 설비를 삭제하시겠습니까?')) return;
+      try {
+        const r = await post({ action: 'deleteEquipment', user: session.username, pass: session.password, category: currentTab, name: name });
+        if (r.result !== 'success') throw new Error(r.message);
+        await loadEquipment();
+        showToast('삭제되었습니다.');
+      } catch (err) { showToast(errorMessage(err)); }
+    }
+
+    function openCompleteModal(name) {
+      completeTargetName = name;
+      const today = new Date();
+      $('completeDate').value = today.toISOString().substring(0, 10);
+      $('completeInspector').value = session ? session.username : '';
+      $('completeMemo').value = '';
+      $('completeMessage').textContent = '';
+      $('completeTitle').textContent = '점검 완료 처리 (' + name + ')';
+      $('completeModal').classList.remove('hidden');
+    }
+
+    async function saveComplete() {
+      $('completeMessage').textContent = '처리 중...';
+      try {
+        const r = await post({
+          action: 'completeEquipment',
+          user: session.username, pass: session.password,
+          category: currentTab, name: completeTargetName,
+          completedDate: $('completeDate').value, memo: $('completeMemo').value.trim()
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('completeModal').classList.add('hidden');
+        await loadEquipment();
+        showToast('점검 완료 처리되었습니다.');
+      } catch (err) { $('completeMessage').textContent = errorMessage(err); }
+    }
+
+    function openEditModal(name, type, cycle) {
+      editTargetName = name;
+      $('editName').value = name;
+      $('editType').value = type;
+      $('editCycle').value = cycle;
+      $('editMessage').textContent = '';
+      $('editModal').classList.remove('hidden');
+    }
+
+    async function saveEdit() {
+      $('editMessage').textContent = '수정 중...';
+      try {
+        const r = await post({
+          action: 'editEquipmentInfo',
+          user: session.username, pass: session.password,
+          category: currentTab, originalName: editTargetName,
+          newName: $('editName').value.trim(), newType: $('editType').value.trim(), newCycle: $('editCycle').value
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('editModal').classList.add('hidden');
+        await loadEquipment();
+        showToast('수정되었습니다.');
+      } catch (err) { $('editMessage').textContent = errorMessage(err); }
+    }
+
+    async function openAdmin() {
+      $('adminModal').classList.remove('hidden');
+      try {
+        const r = await get({ action: 'getUsers' });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('userBody').innerHTML = r.users.map(u => `
+          <tr>
+            <td style="font-weight:700;">${escapeHtml(u.username)}</td>
+            <td>
+              <select id="role_${escapeHtml(u.username)}" style="padding:4px; font-size:12px;">
+                <option value="user" ${u.role==='user'?'selected':''}>사용자</option>
+                <option value="eq_admin" ${u.role==='eq_admin'?'selected':''}>설비관리자</option>
+                <option value="app_admin" ${u.role==='app_admin'?'selected':''}>어플관리자</option>
+              </select>
+            </td>
+            <td>
+              <select id="status_${escapeHtml(u.username)}" style="padding:4px; font-size:12px;">
+                <option value="승인완료" ${u.status==='승인완료'?'selected':''}>승인완료</option>
+                <option value="승인대기" ${u.status==='승인대기'?'selected':''}>승인대기</option>
+              </select>
+            </td>
+            <td>
+              <div style="display:flex; gap:4px; justify-content:center;">
+                <button class="admin" style="padding:4px 8px; font-size:11px;" onclick="updateUser('${escapeHtml(u.username)}')">저장</button>
+                <button class="danger" style="padding:4px 8px; font-size:11px;" onclick="deleteUser('${escapeHtml(u.username)}')">삭제</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) { showToast(errorMessage(err)); }
+    }
+
+    async function updateUser(username) {
+      try {
+        const r = await post({
+          action: 'updateUser', user: session.username, pass: session.password,
+          targetUser: username, role: $('role_' + username).value, status: $('status_' + username).value
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        showToast('사용자 정보가 수정되었습니다.');
+        openAdmin();
+      } catch (err) { showToast(errorMessage(err)); }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm('[' + username + '] 사용자를 삭제하시겠습니까?')) return;
+      try {
+        const r = await post({ action: 'deleteUser', user: session.username, pass: session.password, targetUser: username });
+        if (r.result !== 'success') throw new Error(r.message);
+        showToast('사용자가 삭제되었습니다.');
+        openAdmin();
+      } catch (err) { showToast(errorMessage(err)); }
+    }
+
+    async function openHistory() {
+      $('historyModal').classList.remove('hidden');
+      $('historyList').innerHTML = '<div class="history-empty">불러오는 중...</div>';
+      try {
+        const r = await get({ action: 'getHistory' });
+        if (r.result !== 'success') throw new Error(r.message);
+        const list = r.history || [];
+        $('historyList').innerHTML = list.length ? list.map(h => `
+          <div class="history-item">
+            <div class="h-top">
+              <span>[${escapeHtml(h['카테고리'])}] ${escapeHtml(h['설비명'])}</span>
+              <span style="font-size:11px; color:var(--text-sub);">${escapeHtml(h['처리 일시'])}</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-sub);">완료일: ${escapeHtml(h['완료일'])} | 점검자: ${escapeHtml(h['점검자'] || '-')} | 메모: ${escapeHtml(h['메모'] || '-')}</div>
+          </div>
+        `).join('') : '<div class="history-empty">이력이 없습니다.</div>';
+      } catch (err) { $('historyList').innerHTML = '<div class="history-empty">' + errorMessage(err) + '</div>'; }
+    }
+
+    async function openSmsModal() {
+      $('smsModal').classList.remove('hidden');
+      $('smsMessage').textContent = '불러오는 중...';
+      $('customConfirmBox').style.display = 'none';
+
+      const isAppAdmin = session && session.role === 'app_admin';
+      $('appAdminSmsFields').style.display = isAppAdmin ? 'block' : 'none';
+      
+      const hourSel = $('cfgSendHour');
+      if (hourSel.children.length === 0) {
+        for(let i=0; i<24; i++){ hourSel.innerHTML += `<option value="${i}">${i}시</option>`; }
+        const minSel = $('cfgSendMinute');
+        minSel.innerHTML = '';
+        for(let i=0; i<60; i++){ minSel.innerHTML += `<option value="${i}">${i}분</option>`; }
+      }
+
+      try {
+        const r = await get({ action: 'getSmsSettings' });
+        if (r.result === 'success' && r.settings) {
+          const s = r.settings;
+          if (isAppAdmin) {
+            $('cfgApiKey').value = s.apiKey || '';
+            $('cfgApiSecret').value = s.apiSecret || '';
+            $('cfgSenderNumber').value = s.senderNumber || '';
+          }
+          $('cfgAutoSend').value = String(!!s.autoSend);
+          if(s.sendHour !== undefined) $('cfgSendHour').value = s.sendHour;
+          if(s.sendMinute !== undefined) $('cfgSendMinute').value = s.sendMinute;
+          recipientPhonesList = s.recipientPhones || [];
+          renderPhoneList();
+        }
+      } catch (err) {}
+      $('smsMessage').textContent = '';
+    }
+
+    function renderPhoneList() {
+      $('phoneCount').textContent = recipientPhonesList.length;
+      $('phoneListContainer').innerHTML = recipientPhonesList.length ? recipientPhonesList.map((ph, idx) => `
+        <div class="phone-item">
+          <span>${escapeHtml(ph)}</span>
+          <button class="danger" style="padding:2px 6px; font-size:11px;" onclick="removePhone(${idx})">삭제</button>
+        </div>
+      `).join('') : '<div style="text-align:center; color:var(--text-sub); font-size:12px; padding:10px;">등록된 번호가 없습니다.</div>';
+    }
+
+    function removePhone(idx) {
+      recipientPhonesList.splice(idx, 1);
+      renderPhoneList();
+    }
+
+    async function saveSmsSettings() {
+      $('smsMessage').textContent = '저장 중...';
+      const isAppAdmin = session && session.role === 'app_admin';
+      try {
+        const r = await post({
+          action: 'saveSmsSettings',
+          user: session.username, pass: session.password,
+          apiKey: isAppAdmin ? $('cfgApiKey').value.trim() : '',
+          apiSecret: isAppAdmin ? $('cfgApiSecret').value.trim() : '',
+          senderNumber: isAppAdmin ? $('cfgSenderNumber').value.trim().replace(/-/g, '') : '',
+          recipientPhones: recipientPhonesList.map(p => p.replace(/-/g, '')),
+          autoSend: ($('cfgAutoSend').value === 'true'),
+          sendHour: Number($('cfgSendHour').value),
+          sendMinute: Number($('cfgSendMinute').value)
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('smsMessage').style.color = '#34d399';
+        $('smsMessage').textContent = '설정이 성공적으로 저장되었습니다.';
+        showToast('문자 설정이 저장되었습니다.');
+      } catch (err) { 
+        $('smsMessage').style.color = '#f87171';
+        $('smsMessage').textContent = '설정 저장 실패: ' + errorMessage(err);
+      }
+    }
+
+    function showCustomConfirm() {
+      $('customConfirmBox').style.display = 'block';
+      $('smsMessage').textContent = '';
+    }
+
+    async function sendSmsNow() {
+      $('customConfirmBox').style.display = 'none';
+      const msgBox = $('smsMessage');
+      msgBox.style.color = '#fbbf24';
+      msgBox.textContent = '문자 발송 요청 중... 잠시만 기다려주세요.';
+
+      const isAppAdmin = session && session.role === 'app_admin';
+      try {
+        const r = await post({
+          action: 'sendSmsAlert',
+          user: session.username, pass: session.password,
+          apiKey: isAppAdmin ? $('cfgApiKey').value.trim() : '',
+          apiSecret: isAppAdmin ? $('cfgApiSecret').value.trim() : '',
+          senderNumber: isAppAdmin ? $('cfgSenderNumber').value.trim().replace(/-/g, '') : '',
+          recipientPhones: recipientPhonesList.map(p => p.replace(/-/g, ''))
+        });
+        
+        if (r.result !== 'success') throw new Error(r.message || '발송 실패');
+        
+        msgBox.style.color = '#34d399';
+        msgBox.textContent = '✔ 문자 발송 성공!';
+        showToast('문자가 성공적으로 발송되었습니다.');
+      } catch (err) { 
+        msgBox.style.color = '#f87171';
+        msgBox.textContent = '❌ 발송 실패: ' + errorMessage(err);
+      }
+    }
+
+    function logout() {
+      session = null;
+      localStorage.removeItem('eq_session');
+      show('loginView');
+      $('loginId').value = '';
+      $('loginPassword').value = '';
+      $('autoLoginCheck').checked = false;
+    }
+
+    $('loginBtn').onclick = login;
+    $('goSignupBtn').onclick = () => { show('signupView'); $('signupId').value=''; $('signupPassword').value=''; $('signupMessage').textContent=''; };
+    $('goLoginBtn').onclick = () => { show('loginView'); $('loginId').value=''; $('loginPassword').value=''; $('loginMessage').textContent=''; };
+    $('signupBtn').onclick = signup;
+    
+    const openAddBtn = $('openAddBtn');
+    if (openAddBtn) {
+      openAddBtn.onclick = () => {
+        $('eqName').value = '';
+        $('eqType').value = '';
+        $('eqLastDate').value = new Date().toISOString().substring(0, 10);
+        $('eqCycle').value = '';
+        $('eqMemo').value = '';
+        $('appMessage').textContent = '';
+        $('addModal').classList.remove('hidden');
+      };
+    }
+    $('closeAddBtn').onclick = () => $('addModal').classList.add('hidden');
+
+    $('addBtn').onclick = async () => {
+      $('appMessage').textContent = '등록 중...';
+      try {
+        const r = await post({
+          action: 'addEquipment',
+          user: session.username,
+          pass: session.password,
+          category: currentTab,
+          name: $('eqName').value.trim(),
+          type: $('eqType').value.trim(),
+          lastDate: $('eqLastDate').value,
+          cycle: $('eqCycle').value,
+          memo: $('eqMemo').value.trim()
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('addModal').classList.add('hidden');
+        await loadEquipment();
+        showToast('설비가 성공적으로 등록되었습니다.');
+      } catch (err) {
+        $('appMessage').textContent = errorMessage(err);
+      }
+    };
+
+    $('closeCompleteBtn').onclick = () => $('completeModal').classList.add('hidden');
+    $('completeSaveBtn').onclick = saveComplete;
+    $('closeEditBtn').onclick = () => $('editModal').classList.add('hidden');
+    $('editSaveBtn').onclick = saveEdit;
+    $('allHistoryBtn').onclick = openHistory;
+    $('closeHistoryBtn').onclick = () => $('historyModal').classList.add('hidden');
+    
+    $('selectAllCheck').onchange = e => {
+      const checked = e.target.checked;
+      selectedNames.clear();
+      if(checked) { (equipment[currentTab] || []).forEach(x => selectedNames.add(x['설비명'])); }
+      document.querySelectorAll('.row-check').forEach(chk => chk.checked = checked);
+      updateSelectedCount();
+    };
+
+    $('batchCompleteBtn').onclick = () => {
+      if (selectedNames.size === 0) { showToast('선택된 설비가 없습니다.'); return; }
+      $('batchTargetList').innerHTML = Array.from(selectedNames).map(n => `• ${escapeHtml(n)}`).join('<br>');
+      const today = new Date();
+      $('batchDate').value = today.toISOString().substring(0, 10);
+      $('batchInspector').value = session ? session.username : '';
+      $('batchMemo').value = '';
+      $('batchMessage').textContent = '';
+      $('batchModal').classList.remove('hidden');
+    };
+    $('closeBatchBtn').onclick = () => $('batchModal').classList.add('hidden');
+    
+    $('batchSaveBtn').onclick = async () => {
+      $('batchMessage').textContent = '처리 중...';
+      try {
+        const r = await post({
+          action: 'batchComplete', user: session.username, pass: session.password,
+          category: currentTab, names: Array.from(selectedNames),
+          completedDate: $('batchDate').value, memo: $('batchMemo').value.trim()
+        });
+        if (r.result !== 'success') throw new Error(r.message);
+        $('batchModal').classList.add('hidden');
+        await loadEquipment();
+        showToast('일괄 완료 처리되었습니다.');
+      } catch (err) { $('batchMessage').textContent = errorMessage(err); }
+    };
+
+    $('configSmsBtn').onclick = openSmsModal;
+    $('closeSmsBtn').onclick = () => $('smsModal').classList.add('hidden');
+    $('addPhoneBtn').onclick = () => {
+      const val = $('cfgPhoneInput').value.trim();
+      if(!val || val.length < 10) { showToast('올바른 휴대폰 번호를 입력해주세요.'); return; }
+      const cleanVal = val.replace(/-/g, '');
+      if(recipientPhonesList.includes(cleanVal)) { showToast('이미 등록된 번호입니다.'); return; }
+      recipientPhonesList.push(cleanVal);
+      $('cfgPhoneInput').value = '';
+      renderPhoneList();
+    };
+    $('smsSaveBtn').onclick = saveSmsSettings;
+    
+    $('sendSmsNowBtn').onclick = showCustomConfirm;
+    $('confirmYesBtn').onclick = sendSmsNow;
+    $('confirmNoBtn').onclick = () => { $('customConfirmBox').style.display = 'none'; };
+
+    $('logoutBtn').onclick = logout;
+    $('refreshBtn').onclick = async () => { await loadEquipment(); showToast('새로고침 되었습니다.'); };
+    $('adminBtn').onclick = openAdmin;
+    $('closeAdminBtn').onclick = () => $('adminModal').classList.add('hidden');
+    $('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+    renderTabs();
+
+    // 💡 앱 구동 시 버전 체크 실행
+
+
+    const savedSession = localStorage.getItem('eq_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed && parsed.username && parsed.password) {
+          applySessionAndLoad(parsed.username, parsed.password, parsed.role, true);
+        } else {
+          show('loginView');
+        }
+      } catch (e) {
+        show('loginView');
+      }
+    } else {
+      show('loginView');
+    }
+  </script>
+</body>
+</html>
