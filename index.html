@@ -289,6 +289,18 @@
           <div><label>발송 분</label><select id="cfgSendMinute"></select></div>
         </div>
         
+        <!-- 💡 요일 선택 설정 영역 추가 -->
+        <label style="margin-top:10px;">발송 요일 선택</label>
+        <div style="display:flex; justify-content:space-between; gap:2px; background:var(--input-bg); border:1px solid var(--border); padding:8px; border-radius:8px; margin-bottom:8px; font-size:12px;">
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="1"> 월</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="2"> 화</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="3"> 수</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="4"> 목</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="5"> 금</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="6"> 토</label>
+          <label style="margin:0; font-weight:normal; cursor:pointer;"><input type="checkbox" class="day-check" value="0"> 일</label>
+        </div>
+
         <label>수신자 휴대폰 번호 추가</label>
         <div class="phone-add-row">
           <input type="text" id="cfgPhoneInput" placeholder="010XXXXXXXX">
@@ -319,8 +331,7 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
     const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzgIUA-zycmfHh92o8ReNojTscnOcftO8O8m1VojJ1ErPAxNxp15pohOz-eQIePT1pn/exec';
 
-    // 💡 클라이언트 버전 정의
-    const CLIENT_VERSION = '2.1.1';
+    const CLIENT_VERSION = '2.1.2';
 
     const categories = { main:'Main', circulation:'서큘레이션', wafer:'웨퍼', combo:'콤보', compressor:'콤프레셔' };
     let session = null, currentTab = 'main';
@@ -350,26 +361,16 @@
       return response.json();
     }
 
-    // 💡 안전한 버전 체크 함수 적용 완료
     function checkAppVersion() {
       fetch(API_BASE_URL + '?action=getVersion', { cache: 'no-store' })
         .then(response => response.json())
         .then(data => {
-          var serverVersion = data.version; // 서버 버전
-          
-          // 만약 서버 버전 값을 못 읽어왔거나 양쪽 버전이 같으면 아무것도 안 함
-          if (!serverVersion || serverVersion === CLIENT_VERSION) {
-            console.log("버전이 일치합니다. 정상 작동");
-            return;
-          }
-          
-          // 버전이 다를 때만 업데이트 창 띄우기
+          var serverVersion = data.version;
+          if (!serverVersion || serverVersion === CLIENT_VERSION) return;
           alert("새로운 업데이트가 있습니다! 최신 버전으로 갱신합니다.");
-          location.reload(); // 새로고침
+          location.reload();
         })
-        .catch(err => {
-          console.log("버전 체크 통신 오류 무시");
-        });
+        .catch(err => {});
     }
 
     function errorMessage(err) { return err && err.message ? err.message : '서버 연결에 실패했습니다.'; }
@@ -395,11 +396,10 @@
       $('roleBadge').textContent = getRoleDisplayName(session.role);
       
       const isAppAdmin = (session.role === 'app_admin');
-      const isEqManager = (session.role === 'app_admin' || session.role === 'eq_admin');
       const isUser = (session.role === 'user');
 
       $('adminBtn').classList.toggle('hidden', !isAppAdmin);
-      $('openAddBtn').classList.toggle('hidden', !isEqManager);
+      $('openAddBtn').classList.toggle('hidden', !isAppAdmin && session.role !== 'eq_admin');
       $('configSmsBtn').classList.toggle('hidden', isUser);
 
       show('appView');
@@ -705,6 +705,9 @@
         for(let i=0; i<60; i++){ minSel.innerHTML += `<option value="${i}">${i}분</option>`; }
       }
 
+      // 초기화: 요일 체크 해제
+      document.querySelectorAll('.day-check').forEach(chk => chk.checked = false);
+
       try {
         const r = await get({ action: 'getSmsSettings' });
         if (r.result === 'success' && r.settings) {
@@ -717,6 +720,16 @@
           $('cfgAutoSend').value = String(!!s.autoSend);
           if(s.sendHour !== undefined) $('cfgSendHour').value = s.sendHour;
           if(s.sendMinute !== undefined) $('cfgSendMinute').value = s.sendMinute;
+          
+          // 저장된 요일 데이터 반영 (배열 또는 단일값 대응)
+          if (Array.isArray(s.sendDays)) {
+            document.querySelectorAll('.day-check').forEach(chk => {
+              if (s.sendDays.includes(Number(chk.value)) || s.sendDays.includes(String(chk.value))) {
+                chk.checked = true;
+              }
+            });
+          }
+
           recipientPhonesList = s.recipientPhones || [];
           renderPhoneList();
         }
@@ -742,6 +755,13 @@
     async function saveSmsSettings() {
       $('smsMessage').textContent = '저장 중...';
       const isAppAdmin = session && session.role === 'app_admin';
+      
+      // 체크된 요일 값 수집 (숫자 배열 형태로 변환)
+      const selectedDays = [];
+      document.querySelectorAll('.day-check:checked').forEach(chk => {
+        selectedDays.push(Number(chk.value));
+      });
+
       try {
         const r = await post({
           action: 'saveSmsSettings',
@@ -752,7 +772,8 @@
           recipientPhones: recipientPhonesList.map(p => p.replace(/-/g, '')),
           autoSend: ($('cfgAutoSend').value === 'true'),
           sendHour: Number($('cfgSendHour').value),
-          sendMinute: Number($('cfgSendMinute').value)
+          sendMinute: Number($('cfgSendMinute').value),
+          sendDays: selectedDays // 💡 선택한 요일 배열 전송
         });
         if (r.result !== 'success') throw new Error(r.message);
         $('smsMessage').style.color = '#34d399';
@@ -914,9 +935,7 @@
     $('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 
     renderTabs();
-
-    // 💡 앱 구동 시 버전 체크 실행
-
+    checkAppVersion();
 
     const savedSession = localStorage.getItem('eq_session');
     if (savedSession) {
