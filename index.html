@@ -320,12 +320,15 @@
       <button class="wide" id="smsSaveBtn">설정 저장</button>
       <button class="wide secondary" id="sendSmsNowBtn" style="margin-top:6px;">지금 문자 발송</button>
 
-      <div id="customConfirmBox" style="display:none; border:1px solid var(--border); background:var(--input-bg); padding:12px; margin-top:10px; border-radius:8px; text-align:center;">
-        <p style="margin:0 0 10px; font-size:13px; color:#f3f4f6;">지금 바로 요약 문자를 발송하시겠습니까?</p>
-        <div style="display:flex; gap:8px; justify-content:center;">
-          <button type="button" id="confirmYesBtn" class="warn" style="padding:6px 14px; font-size:12px;">발송</button>
-          <button type="button" id="confirmNoBtn" class="secondary" style="padding:6px 14px; font-size:12px;">취소</button>
-        </div>
+      <!-- 팝업 형식으로 변경된 확인 창 모달 -->
+      <div id="customConfirmModal" class="modal modal-narrow hidden" style="z-index: 400;">
+        <section class="card" style="text-align:center;">
+          <h3 style="margin-bottom:14px; color:#f3f4f6;">지금 바로 요약 문자를 발송하시겠습니까?</h3>
+          <div style="display:flex; gap:8px; justify-content:center;">
+            <button type="button" id="confirmYesBtn" class="warn" style="padding:10px 20px; font-size:13px; flex:1;">발송</button>
+            <button type="button" id="confirmNoBtn" class="secondary" style="padding:10px 20px; font-size:13px; flex:1;">취소</button>
+          </div>
+        </section>
       </div>
 
       <div id="smsMessage" class="message" style="font-weight: bold; color: #60a5fa;"></div>
@@ -699,12 +702,11 @@
     async function openSmsModal() {
       $('smsModal').classList.remove('hidden');
       $('smsMessage').textContent = '불러오는 중...';
-      $('customConfirmBox').style.display = 'none';
+      $('customConfirmModal').classList.add('hidden');
 
       const isAppAdmin = session && session.role === 'app_admin';
       $('appAdminSmsFields').style.display = isAppAdmin ? 'block' : 'none';
       
-      // 1. 시간 및 분 select 옵션을 먼저 채워넣습니다.
       const hourSel = $('cfgSendHour');
       if (hourSel.children.length === 0) {
         hourSel.innerHTML = '';
@@ -716,7 +718,6 @@
         for(let i=0; i<60; i++){ minSel.innerHTML += `<option value="${i}">${i}분</option>`; }
       }
 
-      // 초기화: 요일 체크 해제
       document.querySelectorAll('.day-check').forEach(chk => chk.checked = false);
 
       try {
@@ -730,7 +731,6 @@
           }
           $('cfgAutoSend').value = String(!!s.autoSend);
           
-          // 2. 서버에서 불러온 시간/분 값을 정확히 할당합니다.
           if(s.sendHour !== undefined && s.sendHour !== null) {
             $('cfgSendHour').value = String(s.sendHour);
           }
@@ -738,7 +738,6 @@
             $('cfgSendMinute').value = String(s.sendMinute);
           }
           
-          // 저장된 요일 데이터 반영
           if (Array.isArray(s.sendDays)) {
             document.querySelectorAll('.day-check').forEach(chk => {
               if (s.sendDays.includes(Number(chk.value)) || s.sendDays.includes(String(chk.value))) {
@@ -747,7 +746,6 @@
             });
           }
 
-          // 공휴일 발송 설정 반영
           $('cfgSendOnHoliday').value = (s.sendOnHoliday !== undefined) ? String(s.sendOnHoliday) : 'true';
 
           recipientPhonesList = s.recipientPhones || [];
@@ -776,7 +774,6 @@
       $('smsMessage').textContent = '저장 중...';
       const isAppAdmin = session && session.role === 'app_admin';
       
-      // 체크된 요일 값 수집
       const selectedDays = [];
       document.querySelectorAll('.day-check:checked').forEach(chk => {
         selectedDays.push(Number(chk.value));
@@ -794,7 +791,7 @@
           sendHour: Number($('cfgSendHour').value),
           sendMinute: Number($('cfgSendMinute').value),
           sendDays: selectedDays,
-          sendOnHoliday: ($('cfgSendOnHoliday').value === 'true') // 공휴일 발송 여부 전송
+          sendOnHoliday: ($('cfgSendOnHoliday').value === 'true')
         });
         if (r.result !== 'success') throw new Error(r.message);
         $('smsMessage').style.color = '#34d399';
@@ -807,12 +804,12 @@
     }
 
     function showCustomConfirm() {
-      $('customConfirmBox').style.display = 'block';
+      $('customConfirmModal').classList.remove('hidden');
       $('smsMessage').textContent = '';
     }
 
     async function sendSmsNow() {
-      $('customConfirmBox').style.display = 'none';
+      $('customConfirmModal').classList.add('hidden');
       const msgBox = $('smsMessage');
       msgBox.style.color = '#fbbf24';
       msgBox.textContent = '문자 발송 요청 중... 잠시만 기다려주세요.';
@@ -947,7 +944,7 @@
     
     $('sendSmsNowBtn').onclick = showCustomConfirm;
     $('confirmYesBtn').onclick = sendSmsNow;
-    $('confirmNoBtn').onclick = () => { $('customConfirmBox').style.display = 'none'; };
+    $('confirmNoBtn').onclick = () => { $('customConfirmModal').classList.add('hidden'); };
 
     $('logoutBtn').onclick = logout;
     $('refreshBtn').onclick = async () => { await loadEquipment(); showToast('새로고침 되었습니다.'); };
